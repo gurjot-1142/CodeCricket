@@ -1,0 +1,90 @@
+package com.codecricket.features;
+
+import com.codecricket.api.LiveScoreApi;
+import com.codecricket.ui.CommentaryPanel;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import javax.swing.*;
+import java.awt.*;
+
+public class CommentaryService {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static void load(long matchId, CommentaryPanel panel) {
+
+        new Thread(() -> {
+            try {
+                String json = LiveScoreApi.get(
+                        "https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/"
+                                + matchId + "/comm"
+                );
+
+                JsonNode root = MAPPER.readTree(json);
+                JsonNode list = root.path("comwrapper");
+
+                for (JsonNode item : list) {
+
+                    JsonNode c = item.path("commentary");
+                    if (c.isMissingNode()) continue;
+
+                    String raw = c.path("commtxt").asText("").trim();
+                    if (raw.isEmpty()) continue;
+
+                    String text = clean(raw);
+
+                    int ball = c.path("ballnbr").asInt(0);
+                    double overNum = c.path("overnum").asDouble(0);
+
+                    boolean isBall = ball > 0 && overNum > 0;
+
+                    String over = isBall
+                            ? String.format("%.1f", overNum)
+                            : "";
+
+                    final String overText = over;
+                    final String lineText = text;
+                    final Color bgColor;
+
+                    if (isBall) {
+                        if (text.contains("FOUR")) {
+                            bgColor = new Color(230, 255, 230);
+                        } else if (text.contains("SIX")) {
+                            bgColor = new Color(225, 240, 255);
+                        } else if (text.contains("OUT")) {
+                            bgColor = new Color(255, 225, 225);
+                        } else {
+                            bgColor = UIManager.getColor("Panel.background");
+                        }
+                    } else {
+                        bgColor = UIManager.getColor("Panel.background");
+                    }
+
+                    SwingUtilities.invokeLater(() ->
+                            panel.addLine(overText, lineText, bgColor)
+                    );
+
+                }
+
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() ->
+                        panel.addLine(
+                                "",
+                                "Failed to load commentary",
+                                new Color(255, 230, 230)
+                        )
+                );
+            }
+        }).start();
+    }
+
+    private static String clean(String s) {
+        return s
+                .replaceAll("B\\d\\$", "")
+                .replaceAll("I\\d\\$", "")
+                .replace("\\n", "\n")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+}

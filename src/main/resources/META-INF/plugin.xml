@@ -6,10 +6,14 @@
 
     <depends>com.intellij.modules.platform</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
+    <resource-bundle>messages.CodeCricket</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.gurjot1142.codecricket.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.gurjot1142.codecricket.startup.MyProjectActivity" />
+        <toolWindow
+                id="CodeCricket"
+                factoryClass="com.codecricket.toolwindow.CodeCricketToolWindowFactory"
+                anchor="right"
+                secondary="false"/>
     </extensions>
+
 </idea-plugin>
