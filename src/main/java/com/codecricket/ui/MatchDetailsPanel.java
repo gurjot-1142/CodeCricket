@@ -6,6 +6,7 @@ import com.intellij.openapi.ui.DialogWrapper;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class MatchDetailsPanel extends DialogWrapper {
 
@@ -18,7 +19,9 @@ public class MatchDetailsPanel extends DialogWrapper {
     private MatchDetailsPanel(Project project, MatchItem match) {
         super(project);
         this.match = match;
+
         setTitle(match.toString());
+        setResizable(true);
         init();
     }
 
@@ -26,10 +29,10 @@ public class MatchDetailsPanel extends DialogWrapper {
     protected @Nullable JComponent createCenterPanel() {
 
         JTabbedPane tabs = new JTabbedPane();
-
         tabs.addTab("Commentary", new CommentaryPanel(match.getMatchId()));
         tabs.addTab("Scorecard", new ScorecardPanel(match.getMatchId()));
 
+        tabs.setPreferredSize(new Dimension(900, 650));
         return tabs;
     }
 }

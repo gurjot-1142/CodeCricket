@@ -11,95 +11,67 @@ import javax.swing.table.DefaultTableModel;
 public class ScorecardService {
 
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static JsonNode cachedScorecard;
+    private static JsonNode cached;
     private static long cachedMatchId = -1;
 
-    // ---------- CORE JSON ----------
-    private static JsonNode scorecard(long matchId) throws Exception {
-
-        if (cachedScorecard == null || cachedMatchId != matchId) {
-            String json = LiveScoreApi.get(
-                    "https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/"
-                            + matchId + "/scard"
+    // ---------- CORE ----------
+    private static JsonNode root(long matchId) throws Exception {
+        if (cached == null || cachedMatchId != matchId) {
+            cached = mapper.readTree(
+                    LiveScoreApi.get(
+                            "https://cricbuzz-cricket.p.rapidapi.com/mcenter/v1/"
+                                    + matchId + "/scard"
+                    )
             );
-            cachedScorecard = mapper.readTree(json);
             cachedMatchId = matchId;
         }
-        return cachedScorecard;
+        return cached;
     }
 
     private static JsonNode innings(long matchId, int idx) throws Exception {
-        return scorecard(matchId)
-                .path("scorecard")
-                .get(idx);
+        return root(matchId).path("scorecard").get(idx);
     }
 
-    // ---------- RESULT ----------
+    // ---------- MATCH ----------
     public static String matchResult(long matchId) throws Exception {
-        return scorecard(matchId)
-                .path("matchHeader")
-                .path("status")
-                .asText("");
+        return root(matchId).path("status").asText("");
     }
 
-    // ---------- INNINGS HEADER ----------
+    public static boolean isInningsLive(long matchId, int idx) throws Exception {
+        JsonNode inn = innings(matchId, idx);
+        return !inn.path("isdeclared").asBoolean(false)
+                && inn.path("wickets").asInt() < 10;
+    }
+
+    // ---------- HEADER ----------
     public static String inningsHeader(long matchId, int idx) throws Exception {
-
-        JsonNode inn = innings(matchId, idx);
-
-        String team = inn.path("batteamname").asText();
-        int runs = inn.path("score").asInt();
-        int wkts = inn.path("wickets").asInt();
-        double overs = inn.path("overs").asDouble();
-
-        return team + "  " + runs + "/" + wkts + " (" + overs + " overs)";
+        JsonNode i = innings(matchId, idx);
+        return i.path("batteamname").asText() + " "
+                + i.path("score").asInt() + "/"
+                + i.path("wickets").asInt()
+                + " (" + i.path("overs").asText() + " ov)";
     }
 
-    // ---------- EXTRAS ----------
-    public static String extras(long matchId, int idx) throws Exception {
-
-        JsonNode e = innings(matchId, idx).path("extras");
-
-        int total = e.path("total").asInt();
-        int b = e.path("byes").asInt();
-        int lb = e.path("legbyes").asInt();
-        int w = e.path("wides").asInt();
-        int nb = e.path("noballs").asInt();
-
-        return "Extras: " + total +
-                " (b " + b +
-                ", lb " + lb +
-                ", w " + w +
-                ", nb " + nb + ")";
-    }
-
-    // ---------- TOTAL ----------
-    public static String totalLine(long matchId, int idx) throws Exception {
-
-        JsonNode inn = innings(matchId, idx);
-
-        int runs = inn.path("score").asInt();
-        int wkts = inn.path("wickets").asInt();
-        double overs = inn.path("overs").asDouble();
-        double rr = inn.path("runrate").asDouble();
-
-        return "Total: " + runs + "/" + wkts +
-                " (" + overs + " overs, RR " +
-                String.format("%.2f", rr) + ")";
-    }
-
-    // ---------- BATTING TABLE ----------
+    // ---------- TABLES ----------
     public static JTable battingTable(long matchId, int idx) throws Exception {
 
-        JsonNode inn = innings(matchId, idx);
-
         DefaultTableModel model = new DefaultTableModel(
-                new Object[]{"Name", "R", "B", "4s", "6s", "SR"}, 0
+                new Object[]{"Batter", "Dismissal", "R", "B", "4s", "6s", "SR"}, 0
         );
 
-        for (JsonNode b : inn.path("batsman")) {
+        JsonNode bats = innings(matchId, idx).path("batsman");
+
+        for (JsonNode b : bats) {
+
+            boolean yetToBat = b.path("balls").asInt() == 0
+                    && b.path("outdec").asText("").isEmpty();
+
+            String name = b.path("name").asText();
+            if (b.path("iscaptain").asBoolean()) name += " ©";
+
             model.addRow(new Object[]{
-                    b.path("name").asText(),
+                    name,
+                    yetToBat ? "Yet to bat" : compactOut(b.path("outdec").asText()),
                     b.path("runs").asInt(),
                     b.path("balls").asInt(),
                     b.path("fours").asInt(),
@@ -108,23 +80,21 @@ public class ScorecardService {
             });
         }
 
-        JTable table = new JTable(model);
-        style(table);
-        return table;
+        JTable t = new JTable(model);
+        styleBatting(t);
+        return t;
     }
 
-    // ---------- BOWLING TABLE ----------
     public static JTable bowlingTable(long matchId, int idx) throws Exception {
 
-        JsonNode inn = innings(matchId, idx);
-
         DefaultTableModel model = new DefaultTableModel(
-                new Object[]{"Name", "O", "R", "W", "Econ"}, 0
+                new Object[]{"Bowler", "O", "R", "W", "Econ"}, 0
         );
 
-        for (JsonNode b : inn.path("bowler")) {
+        for (JsonNode b : innings(matchId, idx).path("bowler")) {
             model.addRow(new Object[]{
-                    b.path("name").asText(),
+                    b.path("name").asText()
+                            + (b.path("iscaptain").asBoolean() ? " ©" : ""),
                     b.path("overs").asText(),
                     b.path("runs").asInt(),
                     b.path("wickets").asInt(),
@@ -132,38 +102,61 @@ public class ScorecardService {
             });
         }
 
-        JTable table = new JTable(model);
-        style(table);
-        return table;
+        JTable t = new JTable(model);
+        styleBowling(t);
+        return t;
     }
 
-    // ---------- TABLE STYLE ----------
-    private static void style(JTable table) {
+    // ---------- FOOTERS ----------
+    public static String extras(long matchId, int idx) throws Exception {
+        JsonNode e = innings(matchId, idx).path("extras");
+        return "Extras: " + e.path("total").asInt()
+                + " (b " + e.path("byes").asInt()
+                + ", lb " + e.path("legbyes").asInt()
+                + ", w " + e.path("wides").asInt()
+                + ", nb " + e.path("noballs").asInt() + ")";
+    }
 
-        table.setRowHeight(26);
+    public static String total(long matchId, int idx) throws Exception {
+        JsonNode i = innings(matchId, idx);
+        return "Total: " + i.path("score").asInt() + "/"
+                + i.path("wickets").asInt()
+                + " (" + i.path("overs").asText()
+                + " ov, RR " + i.path("runrate").asText() + ")";
+    }
 
-        // Let table auto-fit to container width
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+    // ---------- STYLE ----------
+    private static void styleBatting(JTable t) {
+        t.setRowHeight(26);
+        t.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
 
-        // Name column — balanced width
-        table.getColumnModel()
-                .getColumn(0)
-                .setPreferredWidth(180);
+        t.getColumnModel().getColumn(0).setPreferredWidth(180);
+        t.getColumnModel().getColumn(1).setPreferredWidth(200);
 
-        // Center numeric columns
-        DefaultTableCellRenderer center =
-                new DefaultTableCellRenderer();
-        center.setHorizontalAlignment(SwingConstants.CENTER);
+        centerCols(t, 2);
+    }
 
-        for (int i = 1; i < table.getColumnCount(); i++) {
-            table.getColumnModel()
-                    .getColumn(i)
-                    .setPreferredWidth(60);
-            table.getColumnModel()
-                    .getColumn(i)
-                    .setCellRenderer(center);
+    private static void styleBowling(JTable t) {
+        t.setRowHeight(26);
+        t.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+        t.getColumnModel().getColumn(0).setPreferredWidth(180);
+        centerCols(t, 1);
+    }
+
+    private static void centerCols(JTable t, int start) {
+        DefaultTableCellRenderer c = new DefaultTableCellRenderer();
+        c.setHorizontalAlignment(SwingConstants.CENTER);
+        for (int i = start; i < t.getColumnCount(); i++) {
+            t.getColumnModel().getColumn(i).setCellRenderer(c);
+            t.getColumnModel().getColumn(i).setPreferredWidth(60);
         }
+    }
 
-        table.setFillsViewportHeight(true);
+    private static String compactOut(String s) {
+        return s.replace("caught", "c")
+                .replace("bowled", "b")
+                .replace("lbw", "lbw")
+                .replace("run out", "run out")
+                .trim();
     }
 }

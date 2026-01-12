@@ -11,28 +11,48 @@ import java.util.List;
 
 public class LiveMatchesPanel extends JPanel {
 
+    private final DefaultListModel<MatchItem> model = new DefaultListModel<>();
+    private final JBList<MatchItem> list = new JBList<>(model);
+
     public LiveMatchesPanel() {
 
         setLayout(new BorderLayout());
 
-        DefaultListModel<MatchItem> model = new DefaultListModel<>();
-        JBList<MatchItem> list = new JBList<>(model);
+        // ---------- HEADER ----------
+        JPanel header = new JPanel(new BorderLayout());
+        JLabel title = new JLabel("Live Matches");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
 
+        JButton refresh = new JButton("Refresh");
+        refresh.addActionListener(e -> load());
+
+        header.add(title, BorderLayout.WEST);
+        header.add(refresh, BorderLayout.EAST);
+        header.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+        add(header, BorderLayout.NORTH);
+
+        // ---------- LIST ----------
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        list.setCellRenderer(new MatchCellRenderer());
 
         list.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 MatchItem selected = list.getSelectedValue();
                 if (selected != null) {
                     MatchDetailsPanel.open(null, selected);
+                    list.clearSelection(); // 🔥 IMPORTANT
                 }
             }
         });
 
-
         add(new JBScrollPane(list), BorderLayout.CENTER);
 
-        // Load data
+        load();
+    }
+
+    private void load() {
+        model.clear();
         SwingUtilities.invokeLater(() -> {
             try {
                 List<MatchItem> matches = LiveMatchesService.fetchLiveMatches();
@@ -46,5 +66,47 @@ public class LiveMatchesPanel extends JPanel {
                 );
             }
         });
+    }
+
+    // ---------- CELL RENDERER ----------
+    private static class MatchCellRenderer extends JPanel
+            implements ListCellRenderer<MatchItem> {
+
+        private final JLabel teams = new JLabel();
+        private final JLabel scores = new JLabel();
+        private final JLabel status = new JLabel();
+
+        MatchCellRenderer() {
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+            setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+
+            teams.setFont(teams.getFont().deriveFont(Font.BOLD, 13f));
+            scores.setFont(scores.getFont().deriveFont(12f));
+            status.setFont(status.getFont().deriveFont(11f));
+
+            add(teams);
+            add(scores);
+            add(status);
+        }
+
+        @Override
+        public Component getListCellRendererComponent(
+                JList<? extends MatchItem> list,
+                MatchItem value,
+                int index,
+                boolean isSelected,
+                boolean cellHasFocus
+        ) {
+            teams.setText(value.getTeam1() + " vs " + value.getTeam2());
+            scores.setText(value.getTeam1Score() + "  |  " + value.getTeam2Score());
+            status.setText(value.getStatus());
+
+            if (isSelected) {
+                setBackground(list.getSelectionBackground());
+            } else {
+                setBackground(list.getBackground());
+            }
+            return this;
+        }
     }
 }

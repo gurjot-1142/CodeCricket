@@ -8,22 +8,24 @@ import java.awt.*;
 
 public class ScorecardPanel extends JPanel {
 
-    public ScorecardPanel(long matchId) {
+    private final long matchId;
 
+    public ScorecardPanel(long matchId) {
+        this.matchId = matchId;
         setLayout(new BorderLayout());
 
         try {
-            JLabel result = new JLabel(
+            JLabel status = new JLabel(
                     ScorecardService.matchResult(matchId),
                     SwingConstants.CENTER
             );
-            result.setFont(result.getFont().deriveFont(Font.BOLD, 14f));
-            result.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-            add(result, BorderLayout.NORTH);
+            status.setFont(status.getFont().deriveFont(Font.BOLD, 14f));
+            status.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+            add(status, BorderLayout.NORTH);
 
             JTabbedPane tabs = new JTabbedPane();
-            tabs.addTab("1st Innings", innings(matchId, 0));
-            tabs.addTab("2nd Innings", innings(matchId, 1));
+            tabs.addTab("1st Innings", innings(0));
+            tabs.addTab("2nd Innings", innings(1));
 
             add(tabs, BorderLayout.CENTER);
 
@@ -32,89 +34,91 @@ public class ScorecardPanel extends JPanel {
         }
     }
 
-    private JComponent innings(long matchId, int idx) throws Exception {
+    private JComponent innings(int idx) throws Exception {
 
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // ---------- HEADER ----------
-        JLabel header = new JLabel(ScorecardService.inningsHeader(matchId, idx));
-        header.setFont(header.getFont().deriveFont(Font.BOLD, 13f));
+        JPanel header = new JPanel(new BorderLayout());
         header.setAlignmentX(Component.LEFT_ALIGNMENT);
-        header.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+
+        JLabel title = new JLabel(
+                ScorecardService.inningsHeader(matchId, idx)
+        );
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 13f));
+        header.add(title, BorderLayout.WEST);
+
+        if (ScorecardService.isInningsLive(matchId, idx)) {
+            JButton refresh = new JButton("Refresh");
+            refresh.addActionListener(e -> reload(idx));
+            header.add(refresh, BorderLayout.EAST);
+        }
+
         content.add(header);
+        content.add(Box.createVerticalStrut(8));
 
-        // ---------- BATTING ----------
-        content.add(sectionLabel("Batting"));
-
-        JTable bat = ScorecardService.battingTable(matchId, idx);
-        content.add(wrapTable(bat));
+        content.add(section("Batting"));
+        content.add(tableWrap(
+                ScorecardService.battingTable(matchId, idx)
+        ));
 
         content.add(Box.createVerticalStrut(6));
+        content.add(new JLabel(ScorecardService.extras(matchId, idx)));
 
-        JLabel extras = new JLabel(ScorecardService.extras(matchId, idx));
-        extras.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(extras);
-
-        JLabel total = new JLabel(ScorecardService.totalLine(matchId, idx));
+        JLabel total = new JLabel(ScorecardService.total(matchId, idx));
         total.setFont(total.getFont().deriveFont(Font.BOLD));
-        total.setAlignmentX(Component.LEFT_ALIGNMENT);
-        total.setBorder(BorderFactory.createEmptyBorder(4, 0, 8, 0));
         content.add(total);
 
-        // ---------- BOWLING ----------
-        content.add(sectionLabel("Bowling"));
+        content.add(Box.createVerticalStrut(12));
+        content.add(section("Bowling"));
+        content.add(tableWrap(
+                ScorecardService.bowlingTable(matchId, idx)
+        ));
 
-        JTable bowl = ScorecardService.bowlingTable(matchId, idx);
-        content.add(wrapTable(bowl));
-
-        // ---------- OUTER SCROLL ----------
         JBScrollPane scroll = new JBScrollPane(
                 content,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
         );
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
         scroll.setBorder(null);
 
         return scroll;
     }
 
-    /**
-     * FINAL FIX:
-     * Lock preferred, max, AND min size
-     * so BoxLayout CANNOT stretch vertically.
-     */
-    private JComponent wrapTable(JTable table) {
+    private void reload(int idx) {
+        removeAll();
+        add(new ScorecardPanel(matchId), BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
 
-        JBScrollPane tableScroll = new JBScrollPane(
+    private JComponent tableWrap(JTable table) {
+
+        JBScrollPane sp = new JBScrollPane(
                 table,
                 JScrollPane.VERTICAL_SCROLLBAR_NEVER,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
         );
-        tableScroll.setBorder(null);
+        sp.setBorder(null);
 
-        int height =
-                table.getRowHeight() * table.getRowCount() +
-                        table.getTableHeader().getPreferredSize().height;
+        int h = table.getRowHeight() * table.getRowCount()
+                + table.getTableHeader().getPreferredSize().height;
 
-        Dimension size = new Dimension(Integer.MAX_VALUE, height);
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
+        wrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, h));
+        wrap.add(sp);
 
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
-        wrapper.setPreferredSize(size);
-        wrapper.setMaximumSize(size);
-        wrapper.setMinimumSize(size);
-        wrapper.add(tableScroll, BorderLayout.CENTER);
-
-        return wrapper;
+        return wrap;
     }
 
-    private JLabel sectionLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(label.getFont().deriveFont(Font.BOLD, 12f));
-        label.setBorder(BorderFactory.createEmptyBorder(10, 0, 6, 0));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return label;
+    private JLabel section(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(l.getFont().deriveFont(Font.BOLD, 12f));
+        l.setBorder(BorderFactory.createEmptyBorder(6, 0, 4, 0));
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return l;
     }
 }

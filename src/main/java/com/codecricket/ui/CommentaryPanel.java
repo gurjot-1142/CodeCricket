@@ -1,6 +1,8 @@
 package com.codecricket.ui;
 
 import com.codecricket.features.CommentaryService;
+import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 
@@ -9,13 +11,17 @@ import java.awt.*;
 
 public class CommentaryPanel extends JPanel {
 
-    private final JPanel content;
-    private final JScrollPane scroll;
+    private final long matchId;
+    private final JPanel content = new JPanel();
+    private final JBScrollPane scroll;
 
     public CommentaryPanel(long matchId) {
+        this.matchId = matchId;
+
         setLayout(new BorderLayout());
 
-        content = new JPanel();
+        add(createToolbar(), BorderLayout.NORTH);
+
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(UIManager.getColor("Panel.background"));
 
@@ -24,10 +30,34 @@ public class CommentaryPanel extends JPanel {
 
         add(scroll, BorderLayout.CENTER);
 
+        reload();
+    }
+
+    private JComponent createToolbar() {
+        DefaultActionGroup group = new DefaultActionGroup();
+
+        group.add(new AnAction("Refresh", "Refresh commentary", AllIcons.Actions.Refresh) {
+            @Override
+            public void actionPerformed(AnActionEvent e) {
+                reload();
+            }
+        });
+
+        return ActionManager.getInstance()
+                .createActionToolbar("CodeCricketComm", group, true)
+                .getComponent();
+    }
+
+    public void reload() {
+        content.removeAll();
+        content.revalidate();
+        content.repaint();
+
         CommentaryService.load(matchId, this);
     }
 
     public void addLine(String over, String text, Color bg) {
+
         JPanel row = new JPanel(new BorderLayout(8, 0));
         row.setBackground(bg);
         row.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
@@ -44,7 +74,6 @@ public class CommentaryPanel extends JPanel {
         area.setLineWrap(true);
         area.setWrapStyleWord(true);
         area.setOpaque(false);
-        area.setFont(new Font("JetBrains Mono", Font.PLAIN, 13));
         area.setBorder(null);
 
         row.add(area, BorderLayout.CENTER);
