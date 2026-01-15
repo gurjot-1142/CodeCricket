@@ -29,10 +29,15 @@ public class MatchDetailsPanel extends DialogWrapper {
     protected @Nullable JComponent createCenterPanel() {
 
         JTabbedPane tabs = new JTabbedPane();
+
+        tabs.addTab("Match Info", new MatchInfoPanel(match.getMatchId()));
         tabs.addTab("Commentary", new CommentaryPanel(match.getMatchId()));
         tabs.addTab("Scorecard", new ScorecardPanel(match.getMatchId()));
+
+        tabs.setSelectedIndex(2);
 
         tabs.setPreferredSize(new Dimension(900, 650));
         return tabs;
     }
+
 }

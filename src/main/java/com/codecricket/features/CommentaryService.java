@@ -32,7 +32,13 @@ public class CommentaryService {
                     String raw = c.path("commtxt").asText("").trim();
                     if (raw.isEmpty()) continue;
 
+                    String speaker = extractSpeaker(c);
                     String text = clean(raw);
+
+                    if (!speaker.isEmpty()) {
+                        text = speaker + " " + text;
+                    }
+
 
                     int ball = c.path("ballnbr").asInt(0);
                     double overNum = c.path("overnum").asDouble(0);
@@ -45,21 +51,7 @@ public class CommentaryService {
 
                     final String overText = over;
                     final String lineText = text;
-                    final Color bgColor;
-
-                    if (isBall) {
-                        if (text.contains("FOUR")) {
-                            bgColor = new Color(230, 255, 230);
-                        } else if (text.contains("SIX")) {
-                            bgColor = new Color(225, 240, 255);
-                        } else if (text.contains("OUT")) {
-                            bgColor = new Color(255, 225, 225);
-                        } else {
-                            bgColor = UIManager.getColor("Panel.background");
-                        }
-                    } else {
-                        bgColor = UIManager.getColor("Panel.background");
-                    }
+                    final Color bgColor = UIManager.getColor("Panel.background");
 
                     SwingUtilities.invokeLater(() ->
                             panel.addLine(overText, lineText, bgColor)
@@ -86,5 +78,21 @@ public class CommentaryService {
                 .replace("\\n", "\n")
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    private static String extractSpeaker(JsonNode c) {
+        for (JsonNode fmt : c.path("commentaryformats")) {
+            if ("bold".equals(fmt.path("type").asText())) {
+                for (JsonNode v : fmt.path("value")) {
+                    String txt = v.path("value").asText("").trim();
+
+                    // must start with capital letter
+                    if (!txt.isEmpty() && Character.isUpperCase(txt.charAt(0))) {
+                            return txt;
+                        }
+                }
+            }
+        }
+        return "";
     }
 }

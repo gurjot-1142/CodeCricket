@@ -84,9 +84,7 @@ public class CommentaryPanel extends JPanel {
         revalidate();
 
         SwingUtilities.invokeLater(() ->
-                scroll.getVerticalScrollBar().setValue(
-                        scroll.getVerticalScrollBar().getMaximum()
-                )
+                scroll.getVerticalScrollBar().setValue(0)
         );
     }
 }

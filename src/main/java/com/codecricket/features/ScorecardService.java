@@ -29,7 +29,11 @@ public class ScorecardService {
     }
 
     private static JsonNode innings(long matchId, int idx) throws Exception {
-        return root(matchId).path("scorecard").get(idx);
+        JsonNode scorecard = root(matchId).path("scorecard");
+        if (!scorecard.isArray() || idx >= scorecard.size()) {
+            return null; // ✅ SAFE
+        }
+        return scorecard.get(idx);
     }
 
     // ---------- MATCH ----------
@@ -37,15 +41,11 @@ public class ScorecardService {
         return root(matchId).path("status").asText("");
     }
 
-    public static boolean isInningsLive(long matchId, int idx) throws Exception {
-        JsonNode inn = innings(matchId, idx);
-        return !inn.path("isdeclared").asBoolean(false)
-                && inn.path("wickets").asInt() < 10;
-    }
-
     // ---------- HEADER ----------
     public static String inningsHeader(long matchId, int idx) throws Exception {
         JsonNode i = innings(matchId, idx);
+        if (i == null) return "Innings not started";
+
         return i.path("batteamname").asText() + " "
                 + i.path("score").asInt() + "/"
                 + i.path("wickets").asInt()
@@ -59,15 +59,17 @@ public class ScorecardService {
                 new Object[]{"Batter", "Dismissal", "R", "B", "4s", "6s", "SR"}, 0
         );
 
-        JsonNode bats = innings(matchId, idx).path("batsman");
+        JsonNode inn = innings(matchId, idx);
+        if (inn == null) return new JTable(model);
 
-        for (JsonNode b : bats) {
+        for (JsonNode b : inn.path("batsman")) {
 
             boolean yetToBat = b.path("balls").asInt() == 0
                     && b.path("outdec").asText("").isEmpty();
 
             String name = b.path("name").asText();
-            if (b.path("iscaptain").asBoolean()) name += " ©";
+            if (b.path("iscaptain").asBoolean()) name += " (c)";
+            if (b.path("iskeeper").asBoolean()) name += " (wk)";
 
             model.addRow(new Object[]{
                     name,
@@ -91,7 +93,10 @@ public class ScorecardService {
                 new Object[]{"Bowler", "O", "R", "W", "Econ"}, 0
         );
 
-        for (JsonNode b : innings(matchId, idx).path("bowler")) {
+        JsonNode inn = innings(matchId, idx);
+        if (inn == null) return new JTable(model);
+
+        for (JsonNode b : inn.path("bowler")) {
             model.addRow(new Object[]{
                     b.path("name").asText()
                             + (b.path("iscaptain").asBoolean() ? " ©" : ""),
@@ -107,9 +112,41 @@ public class ScorecardService {
         return t;
     }
 
+    public static String fallOfWickets(long matchId, int idx) throws Exception {
+
+        JsonNode fowArr = innings(matchId, idx)
+                .path("fow")
+                .path("fow");
+
+        if (!fowArr.isArray() || fowArr.size() == 0)
+            return "";
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < fowArr.size(); i++) {
+            JsonNode f = fowArr.get(i);
+
+            if (i > 0) sb.append(", ");
+
+            sb.append(f.path("runs").asInt())
+                    .append("/")
+                    .append(i + 1)
+                    .append(" (")
+                    .append(f.path("batsmanname").asText())
+                    .append(", ")
+                    .append(f.path("overnbr").asText())
+                    .append(" ov)");
+        }
+
+        return sb.toString();
+    }
+
     // ---------- FOOTERS ----------
     public static String extras(long matchId, int idx) throws Exception {
-        JsonNode e = innings(matchId, idx).path("extras");
+        JsonNode i = innings(matchId, idx);
+        if (i == null) return "";
+
+        JsonNode e = i.path("extras");
         return "Extras: " + e.path("total").asInt()
                 + " (b " + e.path("byes").asInt()
                 + ", lb " + e.path("legbyes").asInt()
@@ -117,8 +154,10 @@ public class ScorecardService {
                 + ", nb " + e.path("noballs").asInt() + ")";
     }
 
-    public static String total(long matchId, int idx) throws Exception {
+    public static String totalLine(long matchId, int idx) throws Exception {
         JsonNode i = innings(matchId, idx);
+        if (i == null) return "";
+
         return "Total: " + i.path("score").asInt() + "/"
                 + i.path("wickets").asInt()
                 + " (" + i.path("overs").asText()
@@ -129,10 +168,8 @@ public class ScorecardService {
     private static void styleBatting(JTable t) {
         t.setRowHeight(26);
         t.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
-
         t.getColumnModel().getColumn(0).setPreferredWidth(180);
         t.getColumnModel().getColumn(1).setPreferredWidth(200);
-
         centerCols(t, 2);
     }
 
@@ -155,8 +192,23 @@ public class ScorecardService {
     private static String compactOut(String s) {
         return s.replace("caught", "c")
                 .replace("bowled", "b")
-                .replace("lbw", "lbw")
                 .replace("run out", "run out")
                 .trim();
+    }
+
+    public static void refresh() {
+        cached = null;
+        cachedMatchId = -1;
+    }
+
+    public static boolean hasSecondInnings(long matchId) throws Exception {
+        return root(matchId).path("scorecard").size() > 1;
+    }
+
+    public static String cricbuzzUrl(long matchId) throws Exception {
+        return root(matchId)
+                .path("appindex")
+                .path("weburl")
+                .asText("");
     }
 }

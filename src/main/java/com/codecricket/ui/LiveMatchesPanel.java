@@ -98,7 +98,19 @@ public class LiveMatchesPanel extends JPanel {
                 boolean cellHasFocus
         ) {
             teams.setText(value.getTeam1() + " vs " + value.getTeam2());
-            scores.setText(value.getTeam1Score() + "  |  " + value.getTeam2Score());
+            String s1 = value.getTeam1Score();
+            String s2 = value.getTeam2Score();
+
+            if (!s1.isEmpty() && !s2.isEmpty()) {
+                scores.setText(s1 + "  |  " + s2);
+                scores.setVisible(true);
+            } else if (!s1.isEmpty()) {
+                scores.setText(s1);
+                scores.setVisible(true);
+            } else {
+                scores.setText("");
+                scores.setVisible(false);
+            }
             status.setText(value.getStatus());
 
             if (isSelected) {

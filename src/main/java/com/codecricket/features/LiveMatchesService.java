@@ -37,8 +37,17 @@ public class LiveMatchesService {
                     String team1 = info.path("team1").path("teamName").asText();
                     String team2 = info.path("team2").path("teamName").asText();
 
-                    String team1Score = scoreLine(score.path("team1Score"));
-                    String team2Score = scoreLine(score.path("team2Score"));
+                    String team1Score = "";
+                    String team2Score = "";
+
+                    if (isPlayableMatch(info)) {
+
+                        team1Score = scoreLine(score.path("team1Score"));
+
+                        if (hasSecondInnings(score)) {
+                            team2Score = scoreLine(score.path("team2Score"));
+                        }
+                    }
 
                     String status = info.path("status").asText();
 
@@ -71,4 +80,25 @@ public class LiveMatchesService {
 
         return runs + "/" + wkts + " (" + overs + ")";
     }
+
+    private static boolean isPlayableMatch(JsonNode info) {
+
+        String state = info.path("state").asText("").toLowerCase();
+        String status = info.path("status").asText("").toLowerCase();
+        String stateTitle = info.path("stateTitle").asText("").toLowerCase();
+
+        if (state.contains("toss")) return false;
+        if (state.contains("abandon")) return false;
+        if (status.contains("abandon")) return false;
+        if (status.contains("no result")) return false;
+        if (status.contains("without toss")) return false;
+        if (stateTitle.contains("abandon")) return false;
+
+        return true;
+    }
+
+    private static boolean hasSecondInnings(JsonNode score) {
+        return score.path("team2Score").has("inngs1");
+    }
+
 }

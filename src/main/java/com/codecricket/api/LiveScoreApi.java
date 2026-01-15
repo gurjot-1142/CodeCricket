@@ -7,7 +7,7 @@ import java.net.http.HttpResponse;
 
 public class LiveScoreApi {
 
-    private static final String API_KEY = "723ce3c2b4msh480a997d6b83e5bp130afcjsncf8980d14244";
+    private static final String API_KEY = "ab722a3271msh9db950e6ed8297fp185a3ajsn34d80f71d75d";
     private static final String HOST = "cricbuzz-cricket.p.rapidapi.com";
 
     public static String get(String url) throws Exception {
