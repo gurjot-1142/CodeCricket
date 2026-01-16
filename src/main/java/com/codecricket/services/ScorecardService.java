@@ -1,10 +1,11 @@
-package com.codecricket.features;
+package com.codecricket.services;
 
 import com.codecricket.api.LiveScoreApi;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import javax.swing.*;
+import javax.swing.JTable;
+import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
@@ -14,7 +15,6 @@ public class ScorecardService {
     private static JsonNode cached;
     private static long cachedMatchId = -1;
 
-    // ---------- CORE ----------
     private static JsonNode root(long matchId) throws Exception {
         if (cached == null || cachedMatchId != matchId) {
             cached = mapper.readTree(
@@ -31,17 +31,15 @@ public class ScorecardService {
     private static JsonNode innings(long matchId, int idx) throws Exception {
         JsonNode scorecard = root(matchId).path("scorecard");
         if (!scorecard.isArray() || idx >= scorecard.size()) {
-            return null; // ✅ SAFE
+            return null;
         }
         return scorecard.get(idx);
     }
 
-    // ---------- MATCH ----------
     public static String matchResult(long matchId) throws Exception {
         return root(matchId).path("status").asText("");
     }
 
-    // ---------- HEADER ----------
     public static String inningsHeader(long matchId, int idx) throws Exception {
         JsonNode i = innings(matchId, idx);
         if (i == null) return "Innings not started";
@@ -52,12 +50,16 @@ public class ScorecardService {
                 + " (" + i.path("overs").asText() + " ov)";
     }
 
-    // ---------- TABLES ----------
     public static JTable battingTable(long matchId, int idx) throws Exception {
 
         DefaultTableModel model = new DefaultTableModel(
                 new Object[]{"Batter", "Dismissal", "R", "B", "4s", "6s", "SR"}, 0
-        );
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
 
         JsonNode inn = innings(matchId, idx);
         if (inn == null) return new JTable(model);
@@ -91,7 +93,12 @@ public class ScorecardService {
 
         DefaultTableModel model = new DefaultTableModel(
                 new Object[]{"Bowler", "O", "R", "W", "Econ"}, 0
-        );
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
 
         JsonNode inn = innings(matchId, idx);
         if (inn == null) return new JTable(model);
@@ -99,7 +106,7 @@ public class ScorecardService {
         for (JsonNode b : inn.path("bowler")) {
             model.addRow(new Object[]{
                     b.path("name").asText()
-                            + (b.path("iscaptain").asBoolean() ? " ©" : ""),
+                            + (b.path("iscaptain").asBoolean() ? " (c)" : ""),
                     b.path("overs").asText(),
                     b.path("runs").asInt(),
                     b.path("wickets").asInt(),
@@ -141,7 +148,6 @@ public class ScorecardService {
         return sb.toString();
     }
 
-    // ---------- FOOTERS ----------
     public static String extras(long matchId, int idx) throws Exception {
         JsonNode i = innings(matchId, idx);
         if (i == null) return "";
@@ -164,7 +170,6 @@ public class ScorecardService {
                 + " ov, RR " + i.path("runrate").asText() + ")";
     }
 
-    // ---------- STYLE ----------
     private static void styleBatting(JTable t) {
         t.setRowHeight(26);
         t.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
@@ -201,14 +206,14 @@ public class ScorecardService {
         cachedMatchId = -1;
     }
 
-    public static boolean hasSecondInnings(long matchId) throws Exception {
-        return root(matchId).path("scorecard").size() > 1;
-    }
-
     public static String cricbuzzUrl(long matchId) throws Exception {
         return root(matchId)
                 .path("appindex")
                 .path("weburl")
                 .asText("");
+    }
+
+    public static int inningsCount(long matchId) throws Exception {
+        return root(matchId).path("scorecard").size();
     }
 }

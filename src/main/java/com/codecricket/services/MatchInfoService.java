@@ -1,4 +1,4 @@
-package com.codecricket.features;
+package com.codecricket.services;
 
 import com.codecricket.api.LiveScoreApi;
 import com.fasterxml.jackson.databind.JsonNode;

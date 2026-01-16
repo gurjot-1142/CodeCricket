@@ -1,10 +1,20 @@
 package com.codecricket.ui;
 
-import com.codecricket.features.MatchInfoService;
+import com.codecricket.services.MatchInfoService;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -31,7 +41,6 @@ public class MatchInfoPanel extends JPanel {
         try {
             JsonNode root = MatchInfoService.load(matchId);
 
-            // ---------- HEADER ----------
             String title =
                     root.path("team1").path("teamname").asText()
                             + " vs "
@@ -47,7 +56,6 @@ public class MatchInfoPanel extends JPanel {
             content.add(label(root.path("seriesname").asText(), true));
             content.add(Box.createVerticalStrut(12));
 
-            // ---------- DETAILS ----------
             addRow(content, "Date",
                     formatDate(root.path("startdate").asLong()));
 
@@ -66,20 +74,28 @@ public class MatchInfoPanel extends JPanel {
             content.add(new JSeparator());
             content.add(Box.createVerticalStrut(10));
 
-            // ---------- OFFICIALS ----------
-            content.add(label("Match Officials", true));
-            content.add(Box.createVerticalStrut(6));
+            if (hasAnyOfficial(root)) {
 
-            addRow(content, "Umpire 1", official(root, "umpire1"));
-            addRow(content, "Umpire 2", official(root, "umpire2"));
+                content.add(Box.createVerticalStrut(12));
+                content.add(label("Match Officials", true));
+                content.add(Box.createVerticalStrut(6));
 
-            if (hasOfficial(root, "umpire3")) {
-                addRow(content, "Third Umpire", official(root, "umpire3"));
+                if (hasOfficial(root, "umpire1")) {
+                    addRow(content, "Umpire 1", official(root, "umpire1"));
+                }
+
+                if (hasOfficial(root, "umpire2")) {
+                    addRow(content, "Umpire 2", official(root, "umpire2"));
+                }
+
+                if (hasOfficial(root, "umpire3")) {
+                    addRow(content, "Third Umpire", official(root, "umpire3"));
+                }
+
+                if (hasOfficial(root, "referee")) {
+                    addRow(content, "Referee", official(root, "referee"));
+                }
             }
-
-            addRow(content, "Referee", official(root, "referee"));
-
-
         } catch (Exception e) {
             content.add(new JLabel("Match information unavailable"));
         }
@@ -126,4 +142,10 @@ public class MatchInfoPanel extends JPanel {
                 && !o.path("name").asText("").isBlank();
     }
 
+    private boolean hasAnyOfficial(JsonNode root) {
+        return hasOfficial(root, "umpire1")
+                || hasOfficial(root, "umpire2")
+                || hasOfficial(root, "umpire3")
+                || hasOfficial(root, "referee");
+    }
 }

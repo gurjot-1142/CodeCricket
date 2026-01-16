@@ -1,38 +1,73 @@
 package com.codecricket.ui;
 
-import com.codecricket.features.LiveMatchesService;
+import com.codecricket.services.LiveMatchesService;
 import com.codecricket.model.MatchItem;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.JBTextField;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.ListCellRenderer;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.util.List;
 
 public class LiveMatchesPanel extends JPanel {
 
     private final DefaultListModel<MatchItem> model = new DefaultListModel<>();
     private final JBList<MatchItem> list = new JBList<>(model);
+    private final JBTextField searchField = new JBTextField();
+    private List<MatchItem> allMatches = List.of();
 
     public LiveMatchesPanel() {
 
         setLayout(new BorderLayout());
 
-        // ---------- HEADER ----------
         JPanel header = new JPanel(new BorderLayout());
+        header.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
         JLabel title = new JLabel("Live Matches");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
+
+        JPanel actions = new JPanel();
+        actions.setLayout(new BoxLayout(actions, BoxLayout.X_AXIS));
+        actions.setOpaque(false);
+
+        searchField.setMaximumSize(new Dimension(220, 28));
+        searchField.setPreferredSize(new Dimension(220, 28));
+        searchField.setMinimumSize(new Dimension(220, 28));
+        searchField.getEmptyText().setText("Search matches");
+
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+        });
 
         JButton refresh = new JButton("Refresh");
         refresh.addActionListener(e -> load());
 
+        actions.add(searchField);
+        actions.add(Box.createHorizontalStrut(8));
+        actions.add(refresh);
+
         header.add(title, BorderLayout.WEST);
-        header.add(refresh, BorderLayout.EAST);
-        header.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        header.add(actions, BorderLayout.EAST);
 
         add(header, BorderLayout.NORTH);
 
-        // ---------- LIST ----------
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setCellRenderer(new MatchCellRenderer());
 
@@ -41,7 +76,7 @@ public class LiveMatchesPanel extends JPanel {
                 MatchItem selected = list.getSelectedValue();
                 if (selected != null) {
                     MatchDetailsPanel.open(null, selected);
-                    list.clearSelection(); // 🔥 IMPORTANT
+                    list.clearSelection();
                 }
             }
         });
@@ -55,8 +90,8 @@ public class LiveMatchesPanel extends JPanel {
         model.clear();
         SwingUtilities.invokeLater(() -> {
             try {
-                List<MatchItem> matches = LiveMatchesService.fetchLiveMatches();
-                matches.forEach(model::addElement);
+                allMatches = LiveMatchesService.fetchLiveMatches();
+                filter();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(
                         this,
@@ -68,7 +103,6 @@ public class LiveMatchesPanel extends JPanel {
         });
     }
 
-    // ---------- CELL RENDERER ----------
     private static class MatchCellRenderer extends JPanel
             implements ListCellRenderer<MatchItem> {
 
@@ -119,6 +153,18 @@ public class LiveMatchesPanel extends JPanel {
                 setBackground(list.getBackground());
             }
             return this;
+        }
+    }
+
+    private void filter() {
+        String q = searchField.getText().trim().toLowerCase();
+        model.clear();
+
+        for (MatchItem m : allMatches) {
+            String text = (m.getTeam1() + " vs " + m.getTeam2()).toLowerCase();
+            if (q.isEmpty() || text.contains(q)) {
+                model.addElement(m);
+            }
         }
     }
 }

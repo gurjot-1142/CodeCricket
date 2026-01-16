@@ -18,7 +18,7 @@ public class CodeCricketToolWindowFactory implements ToolWindowFactory {
         LiveMatchesPanel panel = new LiveMatchesPanel();
 
         Content content = ContentFactory.getInstance()
-                .createContent(panel, "Live Matches", false);
+                .createContent(panel, "Live Score", false);
 
         toolWindow.getContentManager().addContent(content);
     }

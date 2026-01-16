@@ -1,10 +1,35 @@
 package com.codecricket.ui;
 
-import com.codecricket.features.ScorecardService;
+import com.codecricket.services.ScorecardService;
 import com.intellij.ui.components.JBScrollPane;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.OverlayLayout;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.UIManager;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagLayout;
 
 public class ScorecardPanel extends JPanel {
 
@@ -17,7 +42,6 @@ public class ScorecardPanel extends JPanel {
         this.matchId = matchId;
         setLayout(new BorderLayout());
 
-        // ---------- HEADER ----------
         JLabel result = new JLabel("", SwingConstants.CENTER);
         result.setFont(result.getFont().deriveFont(Font.BOLD, 14f));
 
@@ -57,11 +81,9 @@ public class ScorecardPanel extends JPanel {
 
         add(header, BorderLayout.NORTH);
 
-        // ---------- CONTENT ----------
         JPanel content = new JPanel(new BorderLayout());
         content.add(tabs, BorderLayout.CENTER);
 
-        // ---------- SPINNER ----------
         spinnerGlass.setOpaque(true);
         spinnerGlass.setBackground(new Color(0, 0, 0, 90));
         spinnerGlass.setVisible(false);
@@ -113,11 +135,19 @@ public class ScorecardPanel extends JPanel {
 
         try {
             result.setText(ScorecardService.matchResult(matchId));
-            tabs.addTab("1st Innings", innings(0));
 
-            if (ScorecardService.hasSecondInnings(matchId)) {
-                tabs.addTab("2nd Innings", innings(1));
+            int inningsCount = Math.min(
+                    4,
+                    ScorecardService.inningsCount(matchId)
+            );
+
+            for (int i = 0; i < inningsCount; i++) {
+                tabs.addTab(
+                        (i + 1) + getSuffix(i + 1) + " Innings",
+                        innings(i)
+                );
             }
+
         } catch (Exception e) {
             tabs.addTab("Unavailable",
                     new JLabel("Scorecard unavailable", SwingConstants.CENTER));
@@ -131,11 +161,9 @@ public class ScorecardPanel extends JPanel {
         root.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         root.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // ---------- HEADER ----------
         root.add(leftLabel(ScorecardService.inningsHeader(matchId, idx), true));
         root.add(Box.createVerticalStrut(8));
 
-        // ---------- BATTING ----------
         JTable bat = ScorecardService.battingTable(matchId, idx);
         lockTable(bat);
         root.add(wrap(bat));
@@ -146,12 +174,10 @@ public class ScorecardPanel extends JPanel {
 
         root.add(Box.createVerticalStrut(12));
 
-        // ---------- BOWLING ----------
         JTable bowl = ScorecardService.bowlingTable(matchId, idx);
         lockTable(bowl);
         root.add(wrap(bowl));
 
-        // ---------- FALL OF WICKETS ----------
         String fow = ScorecardService.fallOfWickets(matchId, idx);
         if (!fow.isEmpty()) {
             root.add(Box.createVerticalStrut(10));
@@ -175,8 +201,6 @@ public class ScorecardPanel extends JPanel {
 
         return scroll;
     }
-
-    // ---------- HELPERS ----------
 
     private void lockTable(JTable t) {
         t.setFocusable(false);
@@ -232,5 +256,12 @@ public class ScorecardPanel extends JPanel {
         a.setFont(UIManager.getFont("Label.font"));
         a.setAlignmentX(Component.LEFT_ALIGNMENT);
         return a;
+    }
+
+    private String getSuffix(int n) {
+        if (n == 1) return "st";
+        if (n == 2) return "nd";
+        if (n == 3) return "rd";
+        return "th";
     }
 }

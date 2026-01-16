@@ -1,12 +1,13 @@
-package com.codecricket.features;
+package com.codecricket.services;
 
 import com.codecricket.api.LiveScoreApi;
 import com.codecricket.ui.CommentaryPanel;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import java.awt.Color;
 
 public class CommentaryService {
 
@@ -86,7 +87,6 @@ public class CommentaryService {
                 for (JsonNode v : fmt.path("value")) {
                     String txt = v.path("value").asText("").trim();
 
-                    // must start with capital letter
                     if (!txt.isEmpty() && Character.isUpperCase(txt.charAt(0))) {
                             return txt;
                         }

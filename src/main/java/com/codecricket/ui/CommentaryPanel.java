@@ -1,13 +1,25 @@
 package com.codecricket.ui;
 
-import com.codecricket.features.CommentaryService;
+import com.codecricket.services.CommentaryService;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
 
 public class CommentaryPanel extends JPanel {
 

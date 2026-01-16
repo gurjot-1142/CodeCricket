@@ -1,4 +1,4 @@
-package com.codecricket.features;
+package com.codecricket.services;
 
 import com.codecricket.api.LiveScoreApi;
 import com.codecricket.model.MatchItem;
@@ -40,14 +40,8 @@ public class LiveMatchesService {
                     String team1Score = "";
                     String team2Score = "";
 
-                    if (isPlayableMatch(info)) {
-
-                        team1Score = scoreLine(score.path("team1Score"));
-
-                        if (hasSecondInnings(score)) {
-                            team2Score = scoreLine(score.path("team2Score"));
-                        }
-                    }
+                    team1Score = buildTeamScore(score.path("team1Score"));
+                    team2Score = buildTeamScore(score.path("team2Score"));
 
                     String status = info.path("status").asText();
 
@@ -65,40 +59,53 @@ public class LiveMatchesService {
         return list;
     }
 
-    private static String scoreLine(JsonNode teamScore) {
+    private static String buildTeamScore(JsonNode teamScore) {
 
         if (teamScore == null || teamScore.isMissingNode())
             return "";
 
-        JsonNode inngs = teamScore.path("inngs1");
-        if (inngs.isMissingNode())
-            return "";
+        StringBuilder sb = new StringBuilder();
 
-        int runs = inngs.path("runs").asInt();
-        int wkts = inngs.path("wickets").asInt();
-        double overs = inngs.path("overs").asDouble();
+        for (int i = 1; i <= 4; i++) {
 
-        return runs + "/" + wkts + " (" + overs + ")";
+            JsonNode inngs = teamScore.path("inngs" + i);
+            if (inngs.isMissingNode()) continue;
+
+            int runs = inngs.path("runs").asInt();
+            int wkts = inngs.path("wickets").asInt(0);
+            double overs = inngs.path("overs").asDouble(0);
+
+            if (sb.length() > 0) sb.append(" & ");
+
+            sb.append(runs);
+
+            if (wkts >= 0) {
+                sb.append("/").append(wkts);
+            }
+
+            if (overs > 0) {
+                sb.append(" (").append(formatOvers(overs)).append(")");
+            }
+
+            if (inngs.path("isDeclared").asBoolean(false)) {
+                sb.append(" d");
+            }
+
+            if (inngs.path("isFollowOn").asBoolean(false)) {
+                sb.append(" f/o");
+            }
+        }
+
+        return sb.toString();
     }
 
-    private static boolean isPlayableMatch(JsonNode info) {
+    private static String formatOvers(double overs) {
+        int whole = (int) overs;
+        int balls = (int) Math.round((overs - whole) * 10);
 
-        String state = info.path("state").asText("").toLowerCase();
-        String status = info.path("status").asText("").toLowerCase();
-        String stateTitle = info.path("stateTitle").asText("").toLowerCase();
-
-        if (state.contains("toss")) return false;
-        if (state.contains("abandon")) return false;
-        if (status.contains("abandon")) return false;
-        if (status.contains("no result")) return false;
-        if (status.contains("without toss")) return false;
-        if (stateTitle.contains("abandon")) return false;
-
-        return true;
+        if (balls == 6) {
+            return String.valueOf(whole + 1);
+        }
+        return balls == 0 ? String.valueOf(whole) : whole + "." + balls;
     }
-
-    private static boolean hasSecondInnings(JsonNode score) {
-        return score.path("team2Score").has("inngs1");
-    }
-
 }
