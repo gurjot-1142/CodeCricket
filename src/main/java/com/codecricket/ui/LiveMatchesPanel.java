@@ -20,6 +20,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.util.List;
@@ -70,6 +71,7 @@ public class LiveMatchesPanel extends JPanel {
 
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setCellRenderer(new MatchCellRenderer());
+        list.setCursor(java.awt.Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         list.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {

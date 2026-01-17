@@ -30,13 +30,12 @@ public class CommentaryService {
                     JsonNode c = item.path("commentary");
                     if (c.isMissingNode()) continue;
 
-                    String raw = c.path("commtxt").asText("").trim();
-                    if (raw.isEmpty()) continue;
+                    String text = resolveText(c);
+                    if (text.isEmpty()) continue;
 
                     String speaker = extractSpeaker(c);
-                    String text = clean(raw);
 
-                    if (!speaker.isEmpty()) {
+                    if (!speaker.isEmpty() && !text.startsWith(speaker)) {
                         text = speaker + " " + text;
                     }
 
@@ -72,10 +71,25 @@ public class CommentaryService {
         }).start();
     }
 
-    private static String clean(String s) {
-        return s
-                .replaceAll("B\\d\\$", "")
-                .replaceAll("I\\d\\$", "")
+    private static String resolveText(JsonNode c) {
+
+        String text = c.path("commtxt").asText("");
+
+        for (JsonNode fmt : c.path("commentaryformats")) {
+
+            if (!fmt.has("value")) continue;
+
+            for (JsonNode v : fmt.path("value")) {
+                String id = v.path("id").asText();
+                String val = v.path("value").asText();
+
+                if (!id.isEmpty() && !val.isEmpty()) {
+                    text = text.replace(id, val);
+                }
+            }
+        }
+
+        return text
                 .replace("\\n", "\n")
                 .replaceAll("\\s+", " ")
                 .trim();
@@ -87,9 +101,11 @@ public class CommentaryService {
                 for (JsonNode v : fmt.path("value")) {
                     String txt = v.path("value").asText("").trim();
 
-                    if (!txt.isEmpty() && Character.isUpperCase(txt.charAt(0))) {
-                            return txt;
-                        }
+                    if (!txt.isEmpty()
+                            && Character.isUpperCase(txt.charAt(0))
+                            && txt.contains("|")) {
+                        return txt;
+                    }
                 }
             }
         }

@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.Action;
 import javax.swing.JComponent;
 import javax.swing.JTabbedPane;
 import java.awt.Dimension;
@@ -24,11 +25,17 @@ public class MatchDetailsPanel extends DialogWrapper {
         setTitle(match.toString());
         setResizable(true);
         init();
+
+        setCancelButtonText("Close");
+    }
+
+    @Override
+    protected Action[] createActions() {
+        return new Action[]{ getCancelAction() };
     }
 
     @Override
     protected @Nullable JComponent createCenterPanel() {
-
         JTabbedPane tabs = new JTabbedPane();
 
         tabs.addTab("Match Info", new MatchInfoPanel(match.getMatchId()));
@@ -40,5 +47,4 @@ public class MatchDetailsPanel extends DialogWrapper {
         tabs.setPreferredSize(new Dimension(900, 650));
         return tabs;
     }
-
 }
