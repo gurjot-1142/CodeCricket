@@ -216,4 +216,13 @@ public class ScorecardService {
     public static int inningsCount(long matchId) throws Exception {
         return root(matchId).path("scorecard").size();
     }
+
+    public static boolean hasScorecard(long matchId) throws Exception {
+        JsonNode sc = root(matchId).path("scorecard");
+        return sc.isArray() && sc.size() > 0;
+    }
+
+    public static boolean isMatchComplete(long matchId) throws Exception {
+        return root(matchId).path("ismatchcomplete").asBoolean(false);
+    }
 }

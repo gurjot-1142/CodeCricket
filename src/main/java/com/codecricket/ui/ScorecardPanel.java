@@ -37,6 +37,8 @@ public class ScorecardPanel extends JPanel {
 
     private final JTabbedPane tabs = new JTabbedPane();
     private final JPanel spinnerGlass = new JPanel(new GridBagLayout());
+    private JButton refresh;
+    private JButton cricbuzz;
 
     public ScorecardPanel(long matchId) {
         this.matchId = matchId;
@@ -45,7 +47,7 @@ public class ScorecardPanel extends JPanel {
         JLabel result = new JLabel("", SwingConstants.CENTER);
         result.setFont(result.getFont().deriveFont(Font.BOLD, 14f));
 
-        JButton refresh = new JButton("↻ Refresh");
+        refresh = new JButton("↻ Refresh");
         refresh.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         refresh.setFocusable(false);
         refresh.setBorderPainted(false);
@@ -58,7 +60,7 @@ public class ScorecardPanel extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actions.setOpaque(false);
 
-        JButton cricbuzz = new JButton("Go to Cricbuzz");
+        cricbuzz = new JButton("Go to Cricbuzz");
         cricbuzz.setFocusable(false);
         cricbuzz.setBorderPainted(false);
         cricbuzz.setContentAreaFilled(false);
@@ -102,7 +104,11 @@ public class ScorecardPanel extends JPanel {
 
         load(result);
 
-        refresh.addActionListener(e -> refresh(result));
+        refresh.addActionListener(e -> {
+            if (refresh.isVisible()) {
+                refresh(result);
+            }
+        });
     }
 
     private void refresh(JLabel result) {
@@ -136,6 +142,24 @@ public class ScorecardPanel extends JPanel {
         try {
             result.setText(ScorecardService.matchResult(matchId));
 
+            boolean hasScorecard = ScorecardService.hasScorecard(matchId);
+            boolean isComplete = ScorecardService.isMatchComplete(matchId);
+
+            if (!hasScorecard) {
+                refresh.setVisible(false);
+                JLabel msg = new JLabel(
+                        "Scorecard not available",
+                        SwingConstants.CENTER
+                );
+                msg.setFont(msg.getFont().deriveFont(Font.PLAIN, 13f));
+                msg.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
+
+                tabs.addTab("Info", msg);
+                return;
+            }
+
+            refresh.setVisible(hasScorecard && !isComplete);
+
             int inningsCount = Math.min(
                     4,
                     ScorecardService.inningsCount(matchId)
@@ -149,8 +173,11 @@ public class ScorecardPanel extends JPanel {
             }
 
         } catch (Exception e) {
-            tabs.addTab("Unavailable",
-                    new JLabel("Scorecard unavailable", SwingConstants.CENTER));
+            refresh.setVisible(false);
+            tabs.addTab(
+                    "Info",
+                    new JLabel("Scorecard unavailable", SwingConstants.CENTER)
+            );
         }
     }
 

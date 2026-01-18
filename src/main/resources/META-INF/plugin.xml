@@ -2,7 +2,7 @@
 <idea-plugin>
     <id>com.github.gurjot1142.codecricket</id>
     <name>CodeCricket</name>
-    <vendor>gurjot-1142</vendor>
+    <vendor>guru1142</vendor>
 
     <depends>com.intellij.modules.platform</depends>
 

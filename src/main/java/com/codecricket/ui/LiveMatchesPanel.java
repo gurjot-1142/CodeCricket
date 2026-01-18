@@ -18,11 +18,16 @@ import javax.swing.JPanel;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Rectangle;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class LiveMatchesPanel extends JPanel {
@@ -51,10 +56,10 @@ public class LiveMatchesPanel extends JPanel {
         searchField.setMinimumSize(new Dimension(220, 28));
         searchField.getEmptyText().setText("Search matches");
 
-        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { filter(); }
+            public void removeUpdate(DocumentEvent e) { filter(); }
+            public void changedUpdate(DocumentEvent e) { filter(); }
         });
 
         JButton refresh = new JButton("Refresh");
@@ -71,14 +76,46 @@ public class LiveMatchesPanel extends JPanel {
 
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setCellRenderer(new MatchCellRenderer());
-        list.setCursor(java.awt.Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        list.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                MatchItem selected = list.getSelectedValue();
-                if (selected != null) {
-                    MatchDetailsPanel.open(null, selected);
+        list.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int index = list.locationToIndex(e.getPoint());
+                if (index == -1) return;
+
+                Rectangle bounds = list.getCellBounds(index, index);
+                if (bounds == null || !bounds.contains(e.getPoint())) return;
+
+                MatchItem item = model.get(index);
+                MatchDetailsPanel.open(null, item);
+                list.clearSelection();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                list.clearSelection();
+                list.setCursor(Cursor.getDefaultCursor());
+            }
+        });
+
+        list.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                int index = list.locationToIndex(e.getPoint());
+
+                if (index == -1) {
                     list.clearSelection();
+                    list.setCursor(Cursor.getDefaultCursor());
+                    return;
+                }
+
+                Rectangle bounds = list.getCellBounds(index, index);
+                if (bounds != null && bounds.contains(e.getPoint())) {
+                    list.setSelectedIndex(index);
+                    list.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                } else {
+                    list.clearSelection();
+                    list.setCursor(Cursor.getDefaultCursor());
                 }
             }
         });
@@ -154,6 +191,7 @@ public class LiveMatchesPanel extends JPanel {
             } else {
                 setBackground(list.getBackground());
             }
+            setOpaque(true);
             return this;
         }
     }
