@@ -1,8 +1,7 @@
 # CodeCricket
 
-![Build](https://github.com/gurjot-1142/CodeCricket/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/29810-codecricket)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/29810-codecricket)
+[![Version](https://img.shields.io/jetbrains/plugin/v/29810-codecricket.svg)](https://plugins.jetbrains.com/plugin/29810-codecricket)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/29810-codecricket.svg)](https://plugins.jetbrains.com/plugin/29810-codecricket)
 
 <!-- Plugin description -->
 **CodeCricket** brings live cricket action directly into your IntelliJ IDE.
@@ -29,14 +28,11 @@ Perfect for cricket fans who don’t want browser distractions while coding.
 
 - Using JetBrains Marketplace:
 
-  Go to [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID) and install it by clicking the <kbd>Install to ...</kbd> button in case your IDE is running.
-
-  You can also download the [latest release](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID/versions) from JetBrains Marketplace and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+  Go to [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/29810-codecricket) and install it by clicking the <kbd>Install to ...</kbd> button in case your IDE is running.
 
 - Manually:
 
-  Download the [latest release](https://github.com/gurjot-1142/CodeCricket/releases/latest) and install it manually using
+  You can also download the [latest release](https://plugins.jetbrains.com/plugin/29810-codecricket/versions) from JetBrains Marketplace and install it manually using
   <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
 
 
