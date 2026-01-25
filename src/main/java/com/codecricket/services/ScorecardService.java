@@ -206,6 +206,11 @@ public class ScorecardService {
         cachedMatchId = -1;
     }
 
+    public static void clearCache() {
+        cached = null;
+        cachedMatchId = -1;
+    }
+
     public static String cricbuzzUrl(long matchId) throws Exception {
         return root(matchId)
                 .path("appindex")

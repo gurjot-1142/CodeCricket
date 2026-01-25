@@ -42,6 +42,7 @@ public class ScorecardPanel extends JPanel {
 
     public ScorecardPanel(long matchId) {
         this.matchId = matchId;
+        ScorecardService.clearCache();
         setLayout(new BorderLayout());
 
         JLabel result = new JLabel("", SwingConstants.CENTER);
@@ -147,6 +148,7 @@ public class ScorecardPanel extends JPanel {
 
             if (!hasScorecard) {
                 refresh.setVisible(false);
+                ScorecardService.clearCache();
                 JLabel msg = new JLabel(
                         "Scorecard not available",
                         SwingConstants.CENTER
@@ -290,5 +292,11 @@ public class ScorecardPanel extends JPanel {
         if (n == 2) return "nd";
         if (n == 3) return "rd";
         return "th";
+    }
+
+    @Override
+    public void removeNotify() {
+        super.removeNotify();
+        ScorecardService.clearCache();
     }
 }
